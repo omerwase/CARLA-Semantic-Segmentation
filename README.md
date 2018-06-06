@@ -70,5 +70,8 @@ In order to effectively evaluate the network, I chose specific images that I exp
   
   
 ## Enhancements
-
-
+  
+In order to meet FPS requirements I trimmed and resized the input image. This is not ideal and my preferred solution was to use TensorRT. Other methods such as separate client/server inference processes are less effective, though ideally one should use both techniques. I was able to setup the workspace to run TensorRT, but could not convert my model due to incompatible layers. In retrospect I should have tested this before fine-tuning my model. My plan for the future is to run inference using TensorRT in C++, with multi-processing.
+  
+Another major area of improvement is the network design itself. My model is a very basic implementation. Having gone through the process of reading articles on semantic segmentation, I have developed a solid understanding of the challenges involved. My intention is to continue down this path and implement some of the more complex models such as PSPNet and DeepLabv3. Additionally I want to make sure of temporal information available in videos. Information of predictions from one frame should be beneficial for predication probabilities in the next frame (assuming they are continuous).
+  
