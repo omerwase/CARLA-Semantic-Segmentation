@@ -18,31 +18,31 @@ This challenge involved producing pixel-by-pixel annotations of vehicles and roa
 Since this was my first time implementing a network for semantic segmentation, I closely followed the designs outlined in these two papers:
   
 1)	[Fully Convolutional Networks for Semantic Segmentation](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)  
-The authors took a pre-existing VGG network and replaced all fully connected layers with convolutional layers. The resulting network was trained on pixel-wise annotations to produce segmentation maps. As a starting point I adopted their approach, using a pre-trained VGG with convolutional replacement and up-sampled skip connections. The results were impressive but coarse due to loss of finer details during max-pooling.
+As a starting point I adopted their approach, using a pre-trained VGG with convolutional replacement and up-sampled skip connections. The results were impressive but coarse due to loss of finer details during max-pooling.
   
 2)	[Multi-Scale Context Aggregation by Dilated Convolutions]( https://arxiv.org/abs/1511.07122)  
-In order to produce more granular segmentations I redesigned my network to use dilated convolutions as described in the paper above. The last max-pooling layer was replaced with multiple dilated convolutions, increasing the networks receptive field while preserving granular details. Unlike the author’s design, I kept one skip connection (from the third convolutional stack) to improve precision and recall. This skip connection was scaled by a factor of 0.01 to give preferences to outputs from the deeper layers, and avoid larger weight updates to the shallow layers.
+In order to produce more granular segmentations I redesigned my network with dilated convolutions. The last max-pooling layer was replaced with multiple dilated convolutions, increasing the networks receptive field while preserving granular details. Unlike the authors' design, I kept one skip connection (from the third convolutional stack) to improve precision and recall. This skip connection was scaled by a factor of 0.01 to give preferences to outputs from the deeper layers, and avoid larger weight updates to the shallow layers.
 
 
 ## Implementation
 #### Network Architecture
-My final network contained 19 layers (13 regular convolutions, 4 dilated convolutions, and 2 transposed convolutions), illustrated in the image below. Note the output node contains the last transposed convolution.
+The final network design contained 19 layers (13 regular convolutions, 4 dilated convolutions, and 2 transposed convolutions), illustrated in the image below. Note the output node contains the last transposed convolution.
    
 ![alt text][image1]
   
 Instead of using the entire pre-trained VGG model, I used pre-trained weights for the first 10 convolutional layers. The remaining layers were implemented from scratch, with reduced depth (from 4096 to 512), for faster inference. The original VGG network was trained to differentiate between 1000 classes, whereas CARLA provides a maximum of 13. Having 4096 feature maps in the deeper layers seemed unnecessary. 
   
 #### Training and Testing
-For training I gathered additional data using the CARLA simulator. In total the network was trained on 6400 images gathered from both towns and all 14 weather conditions. Since not all classes were represented equally in the training dataset, loss was calculated using a weighted cross entropy function. Adam optimizer was used for backpropagation. During my research for this challenge I found that stochastic gradient decent performs better over longer epochs. Due to time restrictions I decided to stick with Adam, which trains faster.
+For training I gathered additional data using the CARLA simulator. In total the network was trained on 6400 images gathered from both towns and all 14 weather conditions. Because not all classes are represented equally, loss was calculated using a weighted cross entropy function. Adam optimizer was used for backpropagation. During my research for this challenge I found that stochastic gradient decent tends to perform better over longer epochs. Due to time restrictions I decided to stick with Adam, which trains faster.
 
-After each epoch the network was evaluated on hand-picked test data of 500 images. This dataset was selected to contain hard-to-classify images, with small cars and dark/noisy conditions (i.e. hard rain during sunset). The weighted F-score, as described in the challenge, was calculated. Models with the best F-score were saved and retrained with lower learning rates to improve performance.
+After each epoch the network was evaluated on 500 unseen images. This test dataset was specifically selected to contain hard-to-classify images, with small cars and dark/noisy conditions (i.e. hard rain during sunset). The weighted F-score, as described in the challenge, was calculated. Models with the best F-score were saved and retrained with lower learning rates to improve performance.
   
 #### Prediction and FPS
-Though the challenge involved only classifying vehicles and roads, I decided to segment as many classes as possible. As such my network is able to predict 10 classes. Of the original 13, 6 were combined: roads + road lines, buildings + walls, other + traffic signs. The intention behind this was an intuition that the network would be better able to distinguish vehicles and roads if it had a greater classification capacity. This was backed by experimentation which showed improved F-scores (for vehicles and roads) with additional classes in prediction. However, this had a measurable negative effect on inference speed. The intention was to compensate for this loss by employing TensorRT. Unfortunately I experienced significant challenges in implementing TensorRT, and instead had to reduce the input image size to keep FPS above 10. The input image was trimmed 194 pixels from the top and 88 pixel from the bottom. This did not impact the final recall or precision scores, since the trimmed sections should not contain vehicles or roads. The image was then resized to approximately 2/3 the original resolution. This in particular brought the average f-score down from 0.919 to 0.915, which was my final submitted result.
+Though the challenge involved only classifying vehicles and roads, I decided to segment as many classes as possible. As such my network is able to predict 10 classes. Of the original 13, 6 were combined: roads + road lines, buildings + walls, other + traffic signs. The intention behind this was an intuition that the network would better distinguish vehicles and roads if it had a greater classification capacity. This was backed by experimentation which showed improved F-scores (for vehicles and roads) with additional classes in prediction. However, this had a measurable negative effect on inference speed. The intention was to compensate for this loss by employing TensorRT. Unfortunately I experienced significant challenges in implementing TensorRT, and instead had to reduce the input image size to keep FPS above 10. The input image was trimmed 194 pixels from the top and 88 pixel from the bottom. This did not impact the final recall or precision scores, since the trimmed sections should not contain vehicles or roads. The image was then resized to approximately 2/3 the original resolution. This in particular brought the average f-score down from 0.919 to 0.915, which was my final submitted result.
   
   
 ## Results
-In the end the network performed better than I expected it too. I suspect this is due to the limited nature of data from the CARLA simulator, when compared to real images. The table below shows the F-scores from my submitted network, on my own test data:
+In the end the network performed better than expected. I suspect this is due to the limited nature of data from the CARLA simulator, when compared to real-life images. The table below shows the F-scores from my submitted network, on my own test data:
 
 | Class | F1 Score | F-beta Score |
 |:---:|:---:|:---:|
@@ -57,7 +57,15 @@ In the end the network performed better than I expected it too. I suspect this i
 | Builds + Walls | 0.9090 | n/a |
 | Other + Traffic Signs | 0.7948 | n/a |
 
+The network performed well on most images, such as:
 
+![alt text][image2]
+
+In order to effectively evaluate the network, I chose specific images that I expected the network to fail on. For example the first two images in the grouping below. These two images were the very first frames in a new CARLA episode. They are darker than usual because the scene’s lighting is not fully loaded when the frame was taken. I tested on these images in particular to gauge performance in dark scenes. However, the prediction failures in the third image was not expected, and quite interesting. It seems the pedestrians guitar case is being classified as a car. Such situations are important to guide the networks training through points-of-failure.  
+  
+![alt text][image3]
+  
+  
 ## Enhancements
 
 
