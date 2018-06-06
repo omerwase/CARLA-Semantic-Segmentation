@@ -15,7 +15,7 @@
 This challenge involved producing pixel-by-pixel annotations of vehicles and roads in images from the [CARLA simulator](www.carla.org), referred to as semantic segmentation. A custom built Fully Convolutional Network (FCN) was employed for this task. Dilated convolutions were used in place of deeper max-pooling to increase the network’s receptive field, while maintaining granular image details. A skip connection was added to the network in order to preserve finer details lost during earlier max-pooling. The resulting architecture ranked 13th in the competition with a final score of 91.49. However, this score is not an accurate representation of the networks performance. Due to challenges in implementing TensorRT, input image dimensions were reduced to improve inference speed at the cost of recall and precision.
 
 ## Related Work
-Since this was my first time implementing a network for semantic segmentation, I closely followed the designs outlined in these two papers:
+This was my first time implementing semantic segmentation and I closely followed the designs outlined in the following papers:
   
 1)	[Fully Convolutional Networks for Semantic Segmentation](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)  
 As a starting point I adopted their approach, using a pre-trained VGG with convolutional replacement and up-sampled skip connections. The results were impressive but coarse due to loss of finer details during max-pooling.
