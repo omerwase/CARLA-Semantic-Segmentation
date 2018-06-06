@@ -71,7 +71,7 @@ In order to effectively evaluate the network, I chose specific images that I exp
   
 ## Enhancements
   
-During my research I discovered that stochastic gradient descent with moment can outperform Adam over longer epochs. Given more time I recommend using SGD + moment with simulated annealing, over Adam optimizer.
+During my research I discovered that stochastic gradient descent with moment can outperform Adam over more epochs. Given more time I recommend using SGD + moment with simulated annealing, over Adam optimizer.
    
 In order to meet FPS requirements I trimmed and resized the input image. This is not ideal and my preferred solution was to use TensorRT. Other methods such as separate client/server inference processes are less effective, though ideally one should use both techniques. I was able to setup the workspace to run TensorRT, but could not convert my model due to incompatible layers. In retrospect I should have tested this before fine-tuning my model, given limited time. My plan for the future is to run inference using TensorRT in C++, with multi-processing.
   
