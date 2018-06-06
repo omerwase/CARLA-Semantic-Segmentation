@@ -64,7 +64,7 @@ The network performed well on most images:
 ![alt text][image2]
   
 #### Failures
-In order to effectively evaluate the network, I chose specific images that I expected the network to fail on. For example the first two images in the grouping below. These two images were the very first frames in a new CARLA episode. They are darker than usual because the scene’s lighting is not fully loaded when the frame was taken. I tested on these images in particular to gauge performance in dark scenes. However, the prediction failures in the third image was not expected, and quite interesting. It seems the pedestrians guitar case is being classified as a car. Such situations are important to guide the networks training through points-of-failure.  
+In order to effectively evaluate the network, I chose specific images that I expected the network to fail on. For example the first two images in the grouping below. These two images were the very first frames in a new CARLA episode. They are darker than usual because the scene’s lighting is not fully loaded when the frame was taken. I tested on these images in particular to gauge performance in dark scenes. However, the prediction failures in the third image was not expected, and quite interesting. It seems the pedestrian's guitar case is being classified as a car. Such situations are important to guide the networks training through points-of-failure.  
   
 ![alt text][image3]
   
