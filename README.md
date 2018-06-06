@@ -17,7 +17,7 @@ This challenge involved producing pixel-by-pixel annotations of vehicles and roa
 ## Related Work
 Since this was my first time implementing a network for semantic segmentation, I closely followed the designs outlined in these two papers:
   
-1)	[Fully Convolutional Networks for Semantic Segmentation] (https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
+1)	[Fully Convolutional Networks for Semantic Segmentation](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
 The authors took a pre-existing VGG network and replaced all fully connected layers with convolutional layers. The resulting network was trained on pixel-wise annotations to produce segmentation maps. As a starting point I adopted their approach, using a pre-trained VGG with convolutional replacement and up-sampled skip connections. The results were impressive but coarse due to loss of finer details during max-pooling.
   
 2)	[Multi-Scale Context Aggregation by Dilated Convolutions]( https://arxiv.org/abs/1511.07122)
