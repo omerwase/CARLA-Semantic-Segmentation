@@ -1,2 +1,8 @@
-# CARLA-Semantic-Segmentation
-Semantic segmentation of images from the CARLA simulator for Lyft's perception challenge
+# Lyft's Perception Challenge
+
+### Table of Contents
+  1) Introduction
+  2) Related Work
+  3) Solution Architecture
+  4) Results
+  5) Enhancements
