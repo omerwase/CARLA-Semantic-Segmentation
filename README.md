@@ -5,7 +5,7 @@
   2) Related Work
   3) Implementation
   4) Results
-  5) Enhancements
+  5) Shortcomings and Enhancements
 
 [image1]: ./images/network.png "Network architecture"
 [image2]: ./images/good.png "Good prediction results"
@@ -21,7 +21,7 @@ This was my first time implementing semantic segmentation, as such I closely fol
 As a starting point I adopted their approach, using a pre-trained VGG with convolutional replacement and up-sampled skip connections. The results were impressive but coarse due to loss of finer details during max-pooling.
   
 2)	[Multi-Scale Context Aggregation by Dilated Convolutions]( https://arxiv.org/abs/1511.07122)  
-In order to produce more granular segmentations I redesigned my network with dilated convolutions. The last max-pooling layer was replaced with multiple dilated convolutions, increasing the networks receptive field while preserving more details. Unlike the authors' design, I kept one skip connection (from the third convolutional stack) to improve precision and recall. This skip connection was scaled by a factor of 0.01 to give preferences to outputs from the deeper layers, and avoid larger weight updates to the shallow layers.
+In order to produce more granular segmentations I redesigned my network with dilated convolutions. The last max-pooling layer was replaced with multiple dilated convolutions, increasing the networks receptive field while preserving more details. Unlike the authors' design, I kept one skip connection (from the third convolutional stack) to improve precision and recall. This skip connection was scaled by a factor of 0.01 to give preference to outputs from the deeper layers, and avoid larger weight updates to the shallow layers.
 
 
 ## Implementation
@@ -30,15 +30,15 @@ The final network design contained 19 layers (13 regular convolutions, 4 dilated
    
 ![alt text][image1]
   
-Instead of using the entire pre-trained VGG model, I used pre-trained weights for the first 10 convolutional layers. The remaining layers were implemented from scratch, with reduced depth (from 4096 to 512), for faster inference. The original VGG network was trained to differentiate between 1000 classes, whereas CARLA provides a maximum of 13. Having 4096 feature maps in the deeper layers seemed unnecessary. 
+I initialized the first 13 layers with [pre-trained weights](https://drive.google.com/open?id=0Bx9YaGcDPu3XR0d4cXVSWmtVdEE). The remaining layers were implemented from scratch, with reduced depth (from 4096 to 512) for faster inference. The original VGG network was trained to differentiate between 1000 classes, whereas CARLA provides a maximum of 13. Having 4096 feature maps in the deeper layers seemed unnecessary. 
   
 #### Training and Testing
-For training I gathered additional data using the CARLA simulator. In total the network was trained on 6400 images gathered from both towns and all 14 weather conditions. Images were preprocessed with histogram equalization. Denoising was also implemented by later removed due to its exponential time-complexity and limite benefit. Since classes were not represented equally, loss was calculated using a weighted cross entropy function. Adam optimizer was used for backpropagation.
+I obtained additional training data using the CARLA simulator. In total the network was trained on 6400 images gathered from both towns and all 14 weather conditions. Images were preprocessed with histogram equalization. Denoising was implemented but later removed due to its exponential time-complexity and limited benefit. L2 regularization was used to mitigate overfitting. Since classes were not represented equally, loss was calculated using a weighted cross entropy function. This was combined with the loss from regularization and minimized through the Adam optimizer.
 
 After each epoch the network was evaluated on 500 unseen images. This test dataset was specifically selected to contain hard-to-classify images, with small cars and dark/noisy conditions (i.e. hard rain during sunset). The weighted F-score, as described in the challenge, was calculated. Models with the best F-score were saved and retrained with lower learning rates to improve prediction.
   
 #### Prediction and FPS
-Though the challenge involved classifying only vehicles and roads, I decided to segment as many classes as possible. As such my network is able to predict 10 classes. Of the original 13, 6 were combined: roads + road lines, buildings + walls, other + traffic signs. The intention behind this was an intuition that the network would better distinguish vehicles and roads if it had a greater classification capacity. This was backed by experimentation which showed improved F-scores (for vehicles and roads) with additional classes in prediction. However, it had a measurable negative effect on inference speed. The intention was to compensate for this loss by employing TensorRT. Unfortunately I experienced significant challenges in implementing TensorRT, and instead had to reduce the input image size to keep FPS above 10. The input image was trimmed 194 pixels from the top and 88 pixel from the bottom. This has no effect on precision and recall scores, since the trimmed sections did not contain vehicles or roads. The image was then resized to approximately 2/3 the original resolution. This in particular brought the average f-score down from 0.919 to 0.915, which was my final submitted result.
+Though the challenge involved classifying only vehicles and roads, I decided to segment as many classes as possible. As such my network is able to predict 10 classes. Of the original 13, 6 were combined: roads + road lines, buildings + walls, other + traffic signs. The intention behind this was an intuition that the network would better distinguish vehicles and roads if it had a greater classification capacity. This was backed by experimentation which showed improved F-scores (for vehicles and roads) with additional classes in prediction. However, it had a measurable negative effect on inference speed. The intention was to compensate for this loss by employing TensorRT. Unfortunately I experienced challenges in implementing TensorRT, and at the last minute reduced the input image size to keep FPS above 10. The input image was trimmed 194 pixels from the top and 88 pixel from the bottom. This had no effect on precision and recall scores, since the trimmed sections did not contain vehicles or roads. The image was then resized to approximately 2/3 the original resolution. This in particular brought the average f-score down from 0.919 to 0.915, which was my final submitted result.
   
   
 ## Results
@@ -64,16 +64,16 @@ The network performed well on most images:
 ![alt text][image2]
   
 #### Failures
-In order to effectively evaluate the network, I chose specific images that I expected the network to fail on. For example the first two images in the grouping below. These two images were the very first frames in a new CARLA episode. They were darker than usual because the scene’s lighting was not fully loaded when the frame was taken. I tested on these images in particular to gauge performance in dark scenes. However, the prediction failures in the third image was not expected, and quite interesting. It seems the pedestrian's guitar case is being classified as a car, while it overlaps with the road. Such situations are important to guide the network's training through points-of-failure.  
+In order to effectively evaluate the network, I chose specific images that I expected the network to fail on. For example the first two images in the grouping below. These were the very first frames in a new CARLA episode. They were darker than usual because the scene’s lighting was not fully loaded when the frame was taken. I tested on such images in particular to gauge performance in difficult scenes. The prediction failures in the third image was not expected, and quite interesting. The pedestrian's guitar case was classified as a car, only while it overlaped with the road. Such situations are important to guide the network's training through points-of-failure.  
   
 ![alt text][image3]
   
   
-## Enhancements
+## Shortcomings and Enhancements
   
-During my research I discovered that stochastic gradient descent with moment can outperform Adam over more epochs. Given more time I recommend using SGD + moment with simulated annealing, over Adam optimizer.
+During my research I discovered that stochastic gradient descent with moment can outperform Adam in the long run. Given more time I recommend using SGD + moment with simulated annealing, over Adam optimizer.
    
-In order to meet FPS requirements I trimmed and resized the input image as a last-minute hack. This is not ideal and my preferred solution was to use TensorRT. Other methods such as separate client/server inference processes are less effective, though ideally one should use both techniques. I was able to setup the workspace to run TensorRT, but could not convert my model due to incompatible layers. In retrospect I should have tested this before fine-tuning my model, given limited time. My plan for the future is to run inference using TensorRT in C++, with multi-processing.
+In order to meet FPS requirements I trimmed and resized the input image as a last-minute hack. This is not ideal and my preferred solution is to use TensorRT. Other methods such as separate client/server inference processes are less effective, though ideally one should use both techniques. I was able to setup the workspace to run TensorRT, but could not convert my model due to incompatible layers. In retrospect I should have tested this before fine-tuning my model, given limited time. My plan for the future is to run inference using TensorRT in C++, with multi-processing.
   
-Another major area of improvement is the network design itself. My model is close to a basic implementation. Having gone through this challenge, I have developed a solid understanding of task at hand. In the future I intend to implement advanced models such as PSPNet and DeepLabv3. Additionally I want use the temporal data available in videos. Information on predictions from one frame should inform predication probabilities in the next (assuming they are continuous). I have decided to make this the focus of my master's project.
+Another major area of improvement is the network design itself. My model is close to a basic implementation. Having gone through this challenge, I have developed a solid understanding of the task. In the future I intend to implement advanced models such as PSPNet and DeepLabv3. Additionally I want use the temporal data available in videos. Information on predictions from one frame should inform predication probabilities in the next (assuming they are continuous). I have decided to make this the focus of my master's project.
   
