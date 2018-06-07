@@ -1,7 +1,7 @@
 # Lyft's Perception Challenge
 
 ### Table of Contents
-  1) Introduction
+  1) Overview
   2) Related Work
   3) Implementation
   4) Results
@@ -11,8 +11,8 @@
 [image2]: ./images/good.png "Good prediction results"
 [image3]: ./images/bad.png "Bad prediction results"
 
-## Introduction
-This challenge involved producing pixel-by-pixel annotations of vehicles and roads in images from the [CARLA simulator](www.carla.org), referred to as semantic segmentation. A custom built Fully Convolutional Network (FCN) was employed for this task. Dilated convolutions were used in place of deeper max-pooling to increase the network’s receptive field, while maintaining granularity. A skip connection was added to the network in order to preserve finer details lost during earlier max-pooling. The resulting architecture ranked 13th in the competition with a final score of 91.49.
+## Overview
+This challenge involved producing pixel-by-pixel annotations of vehicles and roads in images from the [CARLA simulator](www.carla.org), referred to as semantic segmentation. A modified Fully Convolutional Network (FCN) was constructed using TensorFlow in Python. Dilated convolutions were used in place of deeper max-pooling to increase the network’s receptive field, while maintaining granularity. A skip connection was added to the network to preserve finer details lost during earlier max-pooling. Loss was caluated using weighted cross entropy, optimized with Adam. 6400 images were used for training (both towns, all weather conditions), and 500 specifically selected images (difficult scenes) for testing. The resulting architecture ranked 13th in the competition with a final score of 91.49.
 
 ## Related Work
 This was my first time implementing semantic segmentation, as such I closely followed the designs outlined in the following papers:
@@ -33,7 +33,7 @@ The final network design contained 19 layers (13 regular convolutions, 4 dilated
 I initialized the first 13 layers with [pre-trained weights](https://drive.google.com/open?id=0Bx9YaGcDPu3XR0d4cXVSWmtVdEE). The remaining layers were implemented from scratch, with reduced depth (from 4096 to 512) for faster inference. CARLA data contains a limited number of skins and textures. Having 4096 feature maps in the deeper layers seemed unnecessary. 
   
 #### Training and Testing
-I obtained additional training data using the CARLA simulator. In total the network was trained on 6400 images gathered from both towns and all 14 weather conditions. Images were preprocessed with histogram equalization. Denoising was implemented but later removed due to its exponential time-complexity and limited benefit. L2 regularization was used to mitigate overfitting. Since classes were not represented equally, loss was calculated using a weighted cross entropy function. This was combined with the loss from regularization and minimized through the Adam optimizer.
+I obtained additional training data using the CARLA simulator. In total the network was trained on 6400 images gathered from both towns and all 14 weather conditions. Images were preprocessed with histogram equalization and randomly flipped (horizontal). Denoising was implemented but later removed due to its exponential time-complexity and limited benefit. L2 regularization was used to mitigate overfitting. Since classes were not represented equally, loss was calculated using a weighted cross entropy function. This was combined with the loss from regularization and minimized through the Adam optimizer.
 
 After each epoch the network was evaluated on 500 unseen images. This test dataset was specifically selected to contain hard-to-classify images, with small cars and dark/noisy conditions (i.e. hard rain during sunset). The weighted F-score, as described in the challenge, was calculated. Models with the best F-score were saved and retrained with lower learning rates.
   
