@@ -1,4 +1,4 @@
-# Semantic Segementation of Images from the [CARLA Simulator](www.carla.org)
+# Semantic Segementation of CARLA Images
 
 ### Table of Contents
   1) Overview
