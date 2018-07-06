@@ -1,4 +1,4 @@
-# Lyft's Perception Challenge
+# Semantic Segementation of Images from the [CARLA Simulator](www.carla.org)
 
 ### Table of Contents
   1) Overview
